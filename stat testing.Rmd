@@ -1,0 +1,210 @@
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+
+setwd('C:/Users/Public/Documents/Downloads')
+
+stroopdata <- read.csv('stroopdata.csv')
+
+``` 
+# Test a Perceptual Phenomenon
+
+We will analyze in this project a phenomenon from experimental psychology called
+the “Stroop Effect”. We will test a hypothesis regarding the outcome task based
+on a dataset.  Here is a brief description of the task:
+In a Stroop task, participants are presented with a list of words, with each 
+word displayed in a color of ink. The participant’s task is to say out loud 
+the color of the ink in which the word is printed. The task has two conditions:
+a congruent words condition, and an incongruent words condition. 
+In the congruent words condition, the words being displayed are color words 
+whose names match the colors in which they are printed: for example RED, BLUE.
+In the incongruent words condition, the words displayed are color words 
+whose names do not match the colors in which they are printed: for example
+PURPLE, ORANGE. In each case, we measure the time it takes to name the ink
+colors in equally-sized lists. Each participant will go through and record
+a time from each condition. 
+
+##1.	What is our independent variable? What is our dependent variable?
+Our independent variable is the condition of the words (i.e. congruent or incongruent).
+Our dependent variable is the time it takes to name the ink colors in 
+equally-sized lists.
+
+##2.	What is an appropriate set of hypotheses for this task? What kind of statistical test do you expect to perform? Justify your choices.
+Since it is easier to say the ink colors of the congruent words, we expect that participants spent less time naming the ink colors of the congruent words than
+of the incongruent words. To test this we will use a one-tailed dependent 
+samples t-test on difference between means. I.e. we will test whether the mean times it took to name the ink colors in the two different cases differ significantly from each other. We use this dataset to infer a conclusion about
+the population.
+I.e. we want to know whether people take longer time to name the ink colors of incongruent words.
+The reason we use the dependent samples t-test on difference between means is 
+that the observations are made on the same participants. I.e. the same people performed the Stroop task twice: once with congruent words and once with incongruent words. Hence the data is matched by the participants, which means
+that the samples are dependent due to the same participants.
+We use a t-test because we do not know the population variance and the sample
+size is quite small (24 pairs of observations). The sample size is less than 30, which means that the sample distribution cannot approximate the standard normal distribution. Therefore, we cannot use the z-test.
+We will perform a one-sided test because it is quite logical to assume that the mean time for congruent words will be smaller. Hence, we want to see if we 
+find a significant t-score in the left tail of the distribution.
+This test leads to the following hypotheses:
+  
+  H0: There is no difference in mean times to name the ink colors between 
+  congruent and incongruent words.
+  Ha: The mean time to name the ink colors for congruent words is smaller than 
+  for incongruent words.
+
+The statistical convention to note these hypotheses is:
+  
+  H0: µC  = µI
+  Ha: µC < µI, where the subscript ‘c’ stays for congruent, 
+  and ‘I’ for incongruent. µ represents the mean time of naming the ink colors
+  in the population.
+
+##3.  Report some descriptive statistics regarding this dataset. Include at 
+##least one measure of central tendency and at least one measure of variability.
+
+```{r echo=FALSE, Stats1}
+
+str(stroopdata)
+summary(stroopdata)
+
+```
+
+We have 24 pairs of observations. We can see that the mean time of saying the
+ink colors for congruent words is 14.05 seconds, whereas the mean time for
+incongruent words is 22.02 seconds. This is in line with our expectation that
+saying the colors of congruent words is easier; hence it takes less time.
+Now we will analyze the variability in each sample.
+
+```{r echo=FALSE, Stats2}
+
+library(tidyr); suppressMessages(library(dplyr))
+
+# Add a column identifying subjects
+stroopdata.subject <- mutate(stroopdata, subject = 1:nrow(stroopdata))
+
+# Tidy up data by keeping one variable in one column
+tidy.stroopdata <- gather(stroopdata.subject, congruency, time, -subject)
+
+# Calculate the average time for both groups
+tidy.stroopdata %>%
+    group_by(congruency) %>%
+    summarise(mean(time), median(time), sd(time), var(time))
+
+```
+
+The variance in the 'incongruent' sample is higher than in the 'congruent' one.
+Namely, the standard deviation in the incongruent sample is 4.79 seconds,
+while in the congruent sample is 3.56 seconds.
+
+##4. Provide one or two visualizations that show the distribution of the sample data. 
+##Write one or two sentences noting what you observe about the plot or plots.
+
+```{r echo=FALSE, Stats3}
+
+library(ggplot2)
+
+ggplot(aes(x = time, fill = congruency),
+       data = tidy.stroopdata)+
+  geom_histogram(binwidth = 0.9)
+
+```
+
+The histograms indicate that the distributions are similar for both samples.
+However, the outliers in the incongruent sample leads to a higher variance.
+We will also have a look at their boxplots below.
+
+```{r echo=FALSE, Stats4}
+
+ggplot(aes(x = congruency, y = time), data = tidy.stroopdata)+
+  geom_boxplot(alpha = .5,color = 'blue')+
+  stat_summary(fun.y = "mean", 
+               geom = "point", 
+               color = "red", 
+               shape = 8, 
+               size = 4)
+
+```
+
+The boxplots confirm the sample statistics we analyzed. Namely, the incongruent
+sample has a higher mean and median. The two blue dots indicate the presence
+of two outliers in the incongruent sample.
+
+##5. Now, perform the statistical test and report your results. What is your confidence level and your critical statistic value? Do you reject the null hypothesis or fail to reject it? Come to a conclusion in terms of the experiment task. Did the results match up with your expectations?
+
+```{r echo=FALSE, Stats5}
+
+#The value under the null hypothesis is that the difference between
+#means is 0.
+mean_difference <- 0 
+
+#We add a column for the differences between the two samples.
+stroopdata.difference <- mutate(stroopdata.subject, 
+                                difference = Congruent - Incongruent) 
+
+#Convert the variable difference into a vector.
+difference <- stroopdata.difference$difference 
+
+#Set the sample standard deviation.
+s <- sd(difference) 
+
+#Set the mean of the sample differences.
+difference_smean <- mean(difference)
+
+#Define the sample size.
+n <- length(difference) 
+
+#Set the degrees of freedom for the sample of differences.
+
+df <- n - 1 
+
+#Define the standard error of the sample of differences.
+SE <- s/sqrt(n)
+
+# Compute the t-statistic.
+T <- (difference_smean - mean_difference)/SE; T
+
+```
+
+The t-value of this test is -8.02. This is a very extreme result, which most
+likely means that we will reject the null hypothesis. I.e. the difference in 
+times between the samples is statistically significant. However, to confirm
+that, we will also compute the p-value.
+
+```{r echo=FALSE, Stats6}
+
+# Calculate the p-value
+p_value <- pt(T, df = df, lower.tail = TRUE); p_value
+
+```
+
+The p-value is extremely close to 0. Hence the probability of getting such a result by chance is almost 0. This means that this did not happen by chance. 
+If we assume a significance level of 0.01, we reject the null hypothesis because our p-value is less than the significance level.
+There is a statistically significant difference between the mean times of saying the ink colors. The difference between means we found is based on a sample. 
+This difference does not equal to the difference between means in the entire population. Therefore we want to build a confidence interval for the difference between means in the population.
+A 95% confidence interval will contain the true population difference between
+the means with a probability of 95%.
+
+```{r echo=FALSE, Stats7}
+
+# Construct a 95% confidence interval.
+difference_smean + c(1, -1) * qt(.975, df = df, lower.tail = FALSE) * SE
+
+```
+
+The 95% confidence interval for the population difference between the mean times of saying the ink colors of congruent and incongruent words is between -10.02 seconds and -5.91 seconds.
+I.e. in 95% of randomly selected samples of size of 24 pairs of observations,
+the true population difference between the mean times will be within the confidence intervals of those samples.
+In conclusion, the times of saying the ink colors of congruent words are lower than the times of saying the ink colors of incongruent words.
+Our test proved that the difference is statistically significant.
+This infers that the stroop has an effect on the time of saying the colors.
+Our intuition that this would be the case was right.
+
+##6. Optional: What do you think is responsible for the effects observed? 
+##Can you think of an alternative or similar task that would result in a similar effect? Some research about the problem will be helpful for thinking about these two questions!
+
+Seeing an incongruency in the words we're reading and the color they're written
+in makes it harder to name the colors correctly.
+We make two steps to decipher the names of the colors correctly:
+1) Read the word.
+2) Realize whether the word matches the color.
+Hence if there is a mismatch between the ink color and the word, we make a pause
+until we realize what the actual color should be.
+
+An alternative experiment to test this phenomenon can be done with colored numbers. The method is the same, except that we would have to say the numbers we are reading, instead of words. I think we will see the same results.
+The times to say the incongruent numbers will be higher than the times to
+say the congruent numbers.
